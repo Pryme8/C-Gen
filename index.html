@@ -1,0 +1,679 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Celestiable - Test</title>
+    <script src="babylon.js"></script>  
+    <style>
+    html, body {
+        overflow: hidden;
+        width   : 100%;
+        height  : 100%;
+        margin  : 0;
+        padding : 0;
+    }
+
+    #renderCanvas {
+        width   : 100%;
+        height  : 100%;
+        touch-action: none;
+    }
+</style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+</body>
+</html>
+<script>
+String.prototype.toInt=function(){
+    var sum = 0, i = 0;
+	while(i < this.length){
+		sum += Number(this.charCodeAt(i));
+		i++;
+	}
+	return Math.floor(sum/this.length);
+};
+
+
+Number.prototype.inRange = function(a,b){
+	if((this) >= a && (this) < b){
+	return true	
+	}else{
+	return false	
+	}
+};
+
+Number.prototype.shiftRange = function(a,b){
+	return ((this)*(b - a) + a);
+}
+
+function randomS(seed){
+	
+	if(typeof seed=="string"){
+	seed = seed.toInt();
+	}
+	var x = Math.tan(seed++) * 10000;
+    return Number(x - Math.floor(x));
+};
+
+function Celest(name){
+
+	this.System = {};
+	this.System.Name = name;
+	this.System.Stars = [];
+	this.System.Planets = [];
+	this.System.Festures = [];
+	this.System.Zones = [];
+	this.createStar();
+
+};
+
+
+Celest.prototype.createStar = function(){
+	console.log(this.System.Name);
+	var randomGet = randomS(this.System.Name), star;
+	this.System.seed = randomGet;
+	for(var i=0; i < Object.keys(Celest.Data.Stars.Class).length; i++){
+			var tempObject = Object.keys(Celest.Data.Stars.Class)[i];
+			tempObject = Celest.Data.Stars.Class[tempObject];
+			if(randomGet.inRange(tempObject.rarity[0],tempObject.rarity[1])){
+					star = tempObject;
+				}
+		}
+		
+		star.seed = this.System.seed;
+		
+		star.data = {
+				tempurature : Number(randomS(star.seed)+(2*(2/3))).shiftRange(star.tempRange[0],star.tempRange[1]),
+				mass : Number(randomS(star.seed)+(3*(3/2))).shiftRange(star.massRange[0],star.massRange[1]),
+				radius : Number(randomS(star.seed)+(4*(2/3))).shiftRange(star.radiusRange[0],star.radiusRange[1]),
+				luminosity : Number(randomS(star.seed)+(5*(3/2))).shiftRange(star.luminosityRange[0],star.luminosityRange[1]),
+				dColor : [
+				Number(randomS(star.seed)+(2*(3/6)).shiftRange(Math.min(star.conventionalColor[0][0],star.conventionalColor[1][0]),Math.max(star.conventionalColor[0][0],star.conventionalColor[1][0]))).shiftRange(0,1),
+				Number(randomS(star.seed)+(3*(3/6)).shiftRange(Math.min(star.conventionalColor[0][1],star.conventionalColor[1][1]),Math.max(star.conventionalColor[0][1],star.conventionalColor[1][1]))).shiftRange(0,1),
+				Number(randomS(star.seed)+(4*(3/6)).shiftRange(Math.min(star.conventionalColor[0][2],star.conventionalColor[1][2]),Math.max(star.conventionalColor[0][2],star.conventionalColor[1][2]))).shiftRange(0,1),
+				],
+				lColor : [
+				Number(randomS(star.seed)+(5*(3/6)).shiftRange(Math.min(star.actualColor[0][0],star.actualColor[1][0]),Math.max(star.actualColor[0][0],star.actualColor[1][0]))).shiftRange(0,1),
+				Number(randomS(star.seed)+(6*(3/6)).shiftRange(Math.min(star.actualColor[0][1],star.actualColor[1][1]),Math.max(star.actualColor[0][1],star.actualColor[1][1]))).shiftRange(0,1),
+				Number(randomS(star.seed)+(7*(3/6)).shiftRange(Math.min(star.actualColor[0][2],star.actualColor[1][2]),Math.max(star.actualColor[0][2],star.actualColor[1][2]))).shiftRange(0,1),
+				],
+		}	
+			
+		star.data.sphereOfInfluence = (Math.pow(star.data.mass,(2/5)))*50;
+		
+		console.log("Class:" + star.className);
+		console.log("Temp:" + star.data.tempurature);
+		console.log("Mass:" + star.data.mass);
+		console.log("Radius:" + star.data.radius);
+		console.log("Lumins:" + star.data.luminosity);		
+		console.log("SOI:" + (star.data.sphereOfInfluence)+"AU" );	
+		
+		
+		var zones = Math.round(Celest.Data.Stars.MaxZones.shiftRange(0,randomS(star.seed)));
+		
+		console.log("Number of Zones:" + zones);
+		var zoneKeyPoints = []; //Areas where zones transpher to next
+		
+		
+		if(zones - 1 > 0){
+			for(var i = 0; i < zones; i++){
+			this.System.Zones.push({
+				zoneID : i,
+				
+				});	
+				if(i == 0){
+					zoneKeyPoints.push(Number(randomS(star.seed+(1+i))).shiftRange(0.1,star.data.sphereOfInfluence));
+				}else{
+					zoneKeyPoints.push(Number(randomS(star.seed+(1+i))).shiftRange(zoneKeyPoints[i-1],star.data.sphereOfInfluence));
+				}
+			}	
+		}else{
+			this.System.Zones.push({
+				zoneID : 0
+				});	
+			zoneKeyPoints.push(Number(randomS(star.seed+(1))).shiftRange(randomS(star.seed+(2)),star.data.sphereOfInfluence));
+		}
+		
+		zoneKeyPoints.sort(function(a,b){return a-b});
+		
+		if(zoneKeyPoints.length>1){				
+		for(var i = 0; i < zoneKeyPoints.length; i++){
+			if(i==0){
+					this.System.Zones[i].zoneRange = [
+					Math.min(randomS(star.seed+(2)),zoneKeyPoints[i]),
+					Math.max(randomS(star.seed+(2)),zoneKeyPoints[i])
+					];
+					zoneKeyPoints[1] == this.System.Zones[0].zoneRange[1];
+			}else{
+				this.System.Zones[i].zoneRange = [zoneKeyPoints[i-1], zoneKeyPoints[i]];
+			}
+		}
+		}else{
+			this.System.Zones[0].zoneRange = [
+					Math.min(randomS(star.seed+(2)),zoneKeyPoints[0]),
+					Math.max(randomS(star.seed+(2)),zoneKeyPoints[0])
+					];
+		}
+		
+		for(var i = 0; i < this.System.Zones.length; i++){
+			
+			
+					var generateZoneType = randomS(star.seed+((i+1)/2));	
+					for(var zC = 0; zC < Object.keys(Celest.Data.Stars.zoneTypes).length; zC++){
+						var tempZone = Object.keys(Celest.Data.Stars.zoneTypes)[zC];
+							tempZone = Celest.Data.Stars.zoneTypes[tempZone];
+							
+							
+								//console.log('inRange: ['+tempZone.rarity[0]+","+tempZone.rarity[1]+"] ->"+ generateZoneType.inRange(tempZone.rarity[0], tempZone.rarity[1]));
+								if( generateZoneType.inRange(tempZone.rarity[0], tempZone.rarity[1])){
+									console.log(tempZone.name+ ": selected");
+									this.System.Zones[i].zoneType = tempZone;
+									this.System.Zones[i].zoneFeaturesCount = Math.floor(randomS(star.seed+((i+10)/2)).shiftRange(tempZone.minFeatures,tempZone.maxFeatures));
+								}	
+					}
+			console.log("Zone ID:" + i + " - ZoneRange:" + this.System.Zones[i].zoneRange.toString());
+			console.log("Zone Type:" + this.System.Zones[i].zoneType.name );
+			console.log("Feature Count:" + this.System.Zones[i].zoneFeaturesCount );	
+		}
+		
+		
+		console.log("=======================");	
+		this.System.Stars.push(star);
+		
+		for(var zone = 0; zone < this.System.Zones.length; +zone++){
+		this.System.Zones[zone].zoneType.buildFunction(zone, this);
+		
+		}
+		
+
+};
+
+
+Celest.Data = {
+	Stars : {
+		Class : {
+				O : {
+				className : "O",
+				tempRange : [30000,100000],
+				conventionalColor : [[0,0,255],[100,100,200]],
+				actualColor : [[0,0,255],[50,50,200]],
+				massRange : [16,120],
+				radiusRange : [6.6, 40],
+				luminosityRange : [30000, 100000],
+				hydrogenLines : "weak",
+				rarity : [0, 0.0000003]				
+					},
+				B : {
+				className : "B",
+				tempRange : [10000,30000],
+				conventionalColor : [[200,255,255],[180,200,200]],
+				actualColor : [[120,200,200],[100,140,140]],
+				massRange : [2.1,16],
+				radiusRange : [1.8, 6.6],
+				luminosityRange : [25, 30000],
+				hydrogenLines : "medium",
+				rarity : [0.0000003 , 0.0001303]				
+					},
+				A : {
+				className : "A",
+				tempRange : [7500,10000],
+				conventionalColor : [[255,255,255],[200,200,200]],
+				actualColor : [[200,255,255],[180,200,200]],
+				massRange : [1.4,2.1],
+				radiusRange : [1.4, 1.4],
+				luminosityRange : [5, 25],
+				hydrogenLines : "strong",
+				rarity : [0.0001303 , 0.007303]	
+					},
+				F : {
+				className : "F",
+				tempRange : [6000,7500],
+				conventionalColor : [[255,255,220],[220,220,180]],
+				actualColor : [[255,255,255],[200,200,200]],
+				massRange : [1.04,1.4],
+				radiusRange : [1.15, 1.4],
+				luminosityRange : [1.5, 5],
+				hydrogenLines : "medium",
+				rarity : [0.007303, 0.037303]	
+					},
+				G : {
+				className : "G",
+				tempRange : [5200,6000],
+				conventionalColor : [[255,255,0],[220,220,0]],
+				actualColor : [[255,255,220],[220,220,180]],
+				massRange : [0.8,1.04],
+				radiusRange : [0.96, 1.15],
+				luminosityRange : [0.6, 1.5],
+				hydrogenLines : "weak",
+				rarity :[0.037303, 0.113303]	
+					},
+				K : {
+				className : "K",
+				tempRange : [3700,5200],
+				conventionalColor : [[255,140,0],[200,100,0]],
+				actualColor : [[255,130,0],[200,180,0]],
+				massRange : [0.45,0.8],
+				radiusRange : [0.7, 0.96],
+				luminosityRange : [0.08, 0.6],
+				hydrogenLines : "very weak",
+				rarity : [0.113303, 0.234303]		
+					},
+				M : {
+				className : "M",
+				tempRange : [2400,3700],
+				conventionalColor : [[255,0,0],[200,0,0]], 
+				actualColor : [[255,50,0],[200,20,0]], 
+				massRange : [0.08,0.45],
+				radiusRange : [0.1, 0.7],
+				luminosityRange : [0.01, 0.08],
+				hydrogenLines : "very weak",
+				rarity : [0.234303 , 1]		
+					}	
+			},	
+			MaxZones : 14,
+				zoneTypes : {
+					empty : {
+						name : "empty",
+						description : "Barren and Void",
+						rarity : [0.6,1], //Im just making this up!
+						maxFeatures : 0,
+						minFeatures : 0,
+						buildFunction : function(){
+						return;	
+							}
+						},
+					Sparse_AstroidBelt : {
+						name : "Sparce Astroid Belt",
+						description : "Small Objects with high distribution. Likley Planitoids and possibly a small planet",
+						rarity : [0.45,0.6], //Im just making this up!
+						maxFeatures : 1000000000,
+						minFeatures : 100000000,
+						buildFunction : function(){
+						return;	
+							}
+						},
+			
+			Average_AstroidBelt : {
+				name : "Average Astroid Belt",
+				description : "Small Objects with Average distribution. Likley Planitoids",
+				rarity : [0.38,0.45], //Im just making this up!
+				maxFeatures : 50000000000,
+				minFeatures : 1000000000,
+				buildFunction : function(){
+				return;	
+				}
+			},
+			
+			Dense_AstroidBelt : {
+				name : "Dense Astroid Belt",
+				description : "Rich in Small Objects, possibly planitoids",
+				rarity : [0.3,0.38], //Im just making this up!
+				maxFeatures : 100000000000,
+				minFeatures : 50000000000,
+				buildFunction : function(){
+				return;	
+				}
+			},
+			
+			Planitary : {
+				name : "Planitary System",
+				description : "Contains a Planitary System with possible moons.",
+				rarity : [0,0.3], //Im just making this up!
+				maxFeatures : 1,
+				minFeatures : 1,
+				buildFunction : function(id, parent){
+					var tempArray = [];
+					
+					
+					for(var i = 0; i < Object.keys(Celest.Data.Planets).length; i++){
+							var tempPlanet = Object.keys(Celest.Data.Planets)[i];
+							tempPlanet = Celest.Data.Planets[tempPlanet];
+								var tempPlanetPos = randomS(parent.System.seed * (id+1/3)).shiftRange(parent.System.Zones[id].zoneRange[0],parent.System.Zones[id].zoneRange[1]);
+								var planetPosPercent = tempPlanetPos/parent.System.Stars[0].data.sphereOfInfluence;
+								
+								if(planetPosPercent.inRange(tempPlanet.proximityRange[0],tempPlanet.proximityRange[1])){
+									tempArray.push(tempPlanet);
+								}
+						
+						}
+					
+					var tempPlanet;
+					if(tempArray.length = 1){
+						tempPlanet = tempArray[0];
+					}else if(tempArray.length > 1){
+						for(planet in tempArray){
+							var pushCount = Math.round(planet.rarity*100);
+								for(var i=0; i < pushCount; i++){
+									tempArray.push(planet);
+								}
+						}
+						
+						var cI = tempArray.length, tV, rI;
+						while(0 !== cI){
+						rI = Math.floor(randomS(tempArray.length * (cI/12)) * cI);
+						cI -= 1;
+						tV = tempArray[cI];
+						tempArray[cI] = tempArray[rI];
+						tempArray[rI] = tV;
+						}
+						
+						tempPlanet = tempArray[Math.floor(randomS(parent.System.seed * (id+1/4)).shiftRange(0, tempArray.length))];
+					}
+					
+						tempPlanet.data = {
+							size : randomS((parent.System.seed+1)/2).shiftRange(tempPlanet.sizeMin, tempPlanet.sizeMax),
+							numberOfMoons : Math.round(randomS((parent.System.seed+2)/3).shiftRange(tempPlanet.moonMin, tempPlanet.moonMax)),
+							atmosphereThickness : randomS((parent.System.seed+2)/3).shiftRange(tempPlanet.possibleAtmosphere[0], tempPlanet.possibleAtmosphere[1]),
+						};
+						
+						tempPlanet.data.orbitRadius = randomS(parent.System.seed * (id+1/3)).shiftRange(parent.System.Zones[id].zoneRange[0],parent.System.Zones[id].zoneRange[1]);
+						tempPlanet.data.mass = 20*tempPlanet.data.size; // Temporary for Right now...	
+						
+						tempPlanet.data.gravityConstant = (parent.System.Stars[0].data.mass*tempPlanet.data.mass)/(Math.pow(tempPlanet.data.orbitRadius,2));
+										
+						tempPlanet.data.orbitSpeed = 1/tempPlanet.data.gravityConstant;
+						tempPlanet.data.rotationVector = [randomS(parent.System.seed * (id+10/3)),randomS(parent.System.seed * (id+11/3)),randomS(parent.System.seed * (id+12/3))];
+						tempPlanet.data.color = {
+							base : [randomS(parent.System.seed * (id+1/4)),randomS(parent.System.seed * (id+1/5)),randomS(parent.System.seed * (id+1/6))],
+							atmosphere : [randomS(parent.System.seed * (id+1/7)),randomS(parent.System.seed * (id+1/8)),randomS(parent.System.seed * (id+1/9))],
+						};
+					
+						
+						console.log("Planet Type: " + tempPlanet.name);	
+						console.log("Planet Mass: " + tempPlanet.data.mass);	
+						console.log("Planet Size: " + tempPlanet.data.size);	
+						console.log("Planet Atmosphere %: " + tempPlanet.data.atmosphereThickness);	
+						console.log("Planet Orbit Radius: " + tempPlanet.data.orbitRadius);	
+						console.log("Planet Orbit Speed: " + tempPlanet.data.orbitSpeed);	
+						console.log("Planet Rotation Speed: " + tempPlanet.data.rotationVector);	
+						console.log("Planet Color: " + tempPlanet.data.color.base);	
+						
+						
+						
+						parent.System.Zones[id].Planet = tempPlanet;
+					
+				return;	
+				}
+			},
+		},//END ZONE TYPES;
+	},//END STARS;
+	Planets : {
+		// Binary planet?
+		Chthonian : {
+			name : "Chthonian",
+			description : "A chthonian planet (/ˈkθoʊniən/, sometimes 'cthonian') is a hypothetical class of celestial objects resulting from the stripping away of a gas giant's hydrogen and helium atmosphere and outer layers, which is called hydrodynamic escape. Such atmospheric stripping is a likely result of proximity to a star. The remaining rocky or metallic core would resemble a terrestrial planet in many respects.",
+			proximityRange : [0.1,0.2], //I AM MAKING THIS UP!
+			rarity : 0.155, //I AM MAKING THIS UP! but the higher to 1 the more common;
+			sizeMax : 2, //Relative to Earth (also making this up)...
+			sizeMin : 0.3, //Relative to Earth (also making this up)...
+			possibleAtmosphere : [0,0.2], //Made Up...
+			moonsMin : 0,
+			moonsMax : 2,
+			forceHabitabal : -1, // -1 is Force Inhabitabal, 0 is no Force 1 is forceHabitabal;
+			},
+		Carbon : {
+			name : "Carbon",
+			description : "A carbon planet is a theoretical type of planet that contains more carbon than oxygen.",
+			proximityRange : [0.45,0.7], 
+			rarity : 0.07, 
+			sizeMax : 40, 
+			sizeMin : 3, 
+			possibleAtmosphere : [0,1], 
+			moonsMin : 0,
+			moonsMax : 14,
+			forceHabitabal : 0,
+		},
+		//Circumbinary planet
+		//Coreless
+		Desert : {
+			name : "Desert",
+			description : "A desert planet or dry planet is a theoretical type of terrestrial planet with very little water.",
+			proximityRange : [0.15,0.5], 
+			rarity : 0.4, 
+			sizeMax : 5, 
+			sizeMin : 0.3, 
+			possibleAtmosphere : [0,1],
+			moonsMin : 0,
+			moonsMax : 2,
+			forceHabitabal : 0,	
+		},
+		Dwarf : {
+			name : "Dwarf",
+			description : "A dwarf planet is a planetary-mass object that is neither a planet nor a natural satellite. That is, it is in direct orbit of the Sun, and is massive enough for its gravity to crush itself into a hydrostatic equilibrium shape (usually a spheroid), but has not cleared the neighborhood of other material around its orbit.",
+			proximityRange : [0.3,1], 
+			rarity : 0.6, 
+			sizeMax : 0.3, 
+			sizeMin : 0.1, 
+			possibleAtmosphere : [0,0.2],	
+			moonsMin : 0,
+			moonsMax : 0,
+			forceHabitabal : -1,
+			
+		},
+		Earth : {
+			name : "Earth-Like",
+			description : "An Earth analog (also referred to as a Twin Earth, Earth Twin, Alien Earth or Earth-like planet, though this latter term may refer to any terrestrial planet) is another planet or moon with environmental conditions similar to those found on the planet Earth.",
+			proximityRange : [0.315,0.45], 
+			rarity : 0.2, 
+			sizeMax : 2.5, 
+			sizeMin : 0.5, 
+			possibleAtmosphere : [0.6,1],	
+			moonsMin : 0,
+			moonsMax : 0,
+			forceHabitabal : 1,
+			
+		},
+		//Eccentric Jupiter
+		Gas : {
+			name : "Gas Giant",
+			description : "A gas giant is a giant planet composed mainly of hydrogen and helium. Jupiter and Saturn are the Solar System's gas giants.",
+			proximityRange : [0.48,0.8], 
+			rarity : 0.7, 
+			sizeMax : 40, 
+			sizeMin : 6, 
+			possibleAtmosphere : [1,1],	
+			moonsMin : 0,
+			moonsMax : 30,
+			forceHabitabal : -1,
+		},
+		Helium : {
+			name : "Helium Gas",
+			description : "	A helium planet is a planet with a helium-dominated atmosphere.",
+			proximityRange : [0.65,0.9], 
+			rarity : 0.4, 
+			sizeMax : 20, 
+			sizeMin : 3, 
+			possibleAtmosphere : [1,1],	
+			moonsMin : 0,
+			moonsMax : 14,
+			forceHabitabal : -1,
+		},
+		Helium : {
+			name : "Helium Gas",
+			description : "	A helium planet is a planet with a helium-dominated atmosphere.",
+			proximityRange : [0.65,0.9], 
+			rarity : 0.4, 
+			sizeMax : 20, 
+			sizeMin : 3, 
+			possibleAtmosphere : [1,1],	
+			moonsMin : 0,
+			moonsMax : 14,
+			forceHabitabal : -1,
+		},
+		//Hot Jupiter
+		//Hot Neptune
+		Ice : {
+			name : "Ice Giant",
+			description : "An ice giant is a giant planet composed mainly of elements heavier than hydrogen and helium, such as oxygen, carbon, nitrogen, and sulfur.",
+			proximityRange : [0.65,0.9], 
+			rarity : 0.55, 
+			sizeMax : 14, 
+			sizeMin : 3, 
+			possibleAtmosphere : [0.4,0.6],	
+			moonsMin : 0,
+			moonsMax : 18,
+			forceHabitabal : -1,
+		},
+		Iorn : {
+			name : "Iorn Giant",
+			description : "An iron planet is a type of planet that consists primarily of an iron-rich core with little or no mantle.",
+			proximityRange : [0.45,0.84], 
+			rarity : 0.2, 
+			sizeMax : 20, 
+			sizeMin : 5, 
+			possibleAtmosphere : [0,0.5],	
+			moonsMin : 0,
+			moonsMax : 24,
+			forceHabitabal : -1,
+		},
+		//Lava
+		//Meso
+		//Mini-Neptune
+		Ocean : {
+			name : "Water World",
+			description : "An ocean planet, aquaplanet or water world[1] is a hypothetical type of exoplanet that has a substantial fraction of its mass made of water",
+			proximityRange : [0.25,0.68], 
+			rarity : 0.35, 
+			sizeMax : 8, 
+			sizeMin : 0.5, 
+			possibleAtmosphere : [0.3,0.8],	
+			moonsMin : 0,
+			moonsMax : 3,
+			forceHabitabal : 0,
+		},
+		Plutoid : {
+			name : "Plutoid",
+			description : "A Plutoid or Ice Dwarf is a body in outer-orbiti that is massive enough to be rounded in shape.",
+			proximityRange : [0.7,1], 
+			rarity : 0.35, 
+			sizeMax : 0.5, 
+			sizeMin : 0.05, 
+			possibleAtmosphere : [0,0],	
+			moonsMin : 0,
+			moonsMax : 0,
+			forceHabitabal : -1,
+		},
+		//Proto
+		//Puffy
+		//Pulsar
+		//Rogue
+		SuperEarth : {
+			name : "Super Earth",
+			description : "A super-Earth is an extrasolar planet with a mass higher than Earth's, but substantially below the mass of the Solar System's ice giants Uranus and Neptune.",
+			proximityRange : [0.6,0.85], 
+			rarity : 0.35, 
+			sizeMax : 20, 
+			sizeMin : 3, 
+			possibleAtmosphere : [0.4,1],	
+			moonsMin : 0,
+			moonsMax : 12,
+			forceHabitabal : 0,
+		},
+		SuperJupiter : {
+			name : "Super Jupiter",
+			description : "A super-Jupiter is an astronomical object that's more massive than the planet Jupiter.",
+			proximityRange : [0.6,0.85], 
+			rarity : 0.125, 
+			sizeMax : 200, 
+			sizeMin : 20, 
+			possibleAtmosphere : [0.8,1],	
+			moonsMin : 0,
+			moonsMax : 100,
+			forceHabitabal : -1,
+		},
+		Terretsrial : {
+			name : "Terretsrial",
+			description : "A terrestrial planet, telluric planet, or rocky planet is a planet that is composed primarily of silicate rocks or metals.",
+			proximityRange : [0.35,0.6], 
+			rarity : 0.6, 
+			sizeMax : 10, 
+			sizeMin : 0.3, 
+			possibleAtmosphere : [0,1],	
+			moonsMin : 0,
+			moonsMax : 6,
+			forceHabitabal : 0,
+		},
+			
+		}//END PLANETS;
+}
+
+Celest.Data.Constants = {
+	aU : 200,
+}
+
+Celest.Data.Constants.solarRadius = Celest.Data.Constants.aU * 0.00465047;
+
+
+window.addEventListener('DOMContentLoaded', function() {
+
+	StarSystem = new Celest("HTML5");
+	
+	
+    var canvas = document.getElementById('renderCanvas');
+	var engine = new BABYLON.Engine(canvas, true);
+		
+	var createScene = function() {
+    // create a basic BJS Scene object
+    var scene = new BABYLON.Scene(engine);
+
+    // create a FreeCamera, and set its position to (x:0, y:5, z:-10)
+    var camera = new BABYLON.FreeCamera('camera1', new BABYLON.Vector3(0, 5,-10), scene);
+
+    // target the camera to scene origin
+    camera.setTarget(BABYLON.Vector3.Zero());
+
+    // attach the camera to the canvas
+    camera.attachControl(canvas, false);
+
+
+	var starSize = (StarSystem.System.Stars[0].data.radius * Celest.Data.Constants.solarRadius);
+	
+    // create a built-in "sphere" shape; its constructor takes 5 params: name, width, depth, subdivisions, scene
+    var star = BABYLON.Mesh.CreateSphere('Star', 24, starSize, scene);
+	var starMat = new BABYLON.StandardMaterial("starMat", scene);
+	star.material = starMat;
+var starData = StarSystem.System.Stars[0].data;
+	
+	var dColorR = starData.dColor[0], dColorG = starData.dColor[1], dColorB = starData.dColor[2],
+		lColorR = starData.dColor[0], lColorG = starData.dColor[1], lColorB = starData.dColor[2];
+
+	
+	star.material.diffuseColor = new BABYLON.Color3(dColorR, dColorG, dColorB);
+	star.material.emissiveColor = new BABYLON.Color3(lColorR, lColorG, lColorB);
+	//camera.position = new BABYLON.Vector3(0,starSize/2,starSize*-1);
+
+	var starRays = new BABYLON.VolumetricLightScatteringPostProcess('vls', { postProcessRatio: 1.0, passRatio: 1 }, camera, star, 75, BABYLON.Texture.BILINEAR_SAMPLINGMODE, engine, false);
+	
+	starRays.useDiffuseColor = true; // False as default
+
+		var exposeRange = Number(starData.luminosity/Celest.Data.Stars.Class.O.luminosityRange[1]);
+		exposeRange = exposeRange/0.35;
+		var decayRange = Number(starData.luminosity/Celest.Data.Stars.Class.O.luminosityRange[1]);
+		decayRange = decayRange/0.095;
+		
+
+	starRays.exposure = 0.1 + (exposeRange);
+    starRays.decay = 0.98 - (decayRange);
+    starRays.weight = 0.5;
+    starRays.density = 0.8;
+	
+
+    // return the created scene
+    return scene;
+}
+
+var scene = createScene();
+
+engine.runRenderLoop(function() {
+    scene.render();
+});
+
+
+//ALWAYS LISTEN FOR RESIZE!
+window.addEventListener('resize', function() {
+    engine.resize();
+});
+
+    });
+</script>
